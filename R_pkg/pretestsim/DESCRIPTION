@@ -1,0 +1,27 @@
+Package: pretestsim
+Type: Package
+Title: Interactive Studio for the Pretest-Simulation Framework
+Version: 0.1.0
+Authors@R: person("Benedict", "Kongyir", role = c("aut", "cre"),
+                  email = "you@example.com")
+Description: A Shiny dashboard that drives the original, unmodified
+    pretest-simulation framework ('user_framework_rpk_v3_0.R', bundled in
+    'inst/framework') through the six phases of its run_simulation() engine:
+    normality-test AUROC comparison, trade-off analysis and optimal-threshold
+    selection, power vs Type I error ROC-like curves, power and Type I error
+    across sample sizes (with AUC tables), and power vs effect size. The user
+    chooses a classical or custom/ML normality assessment, supplies custom
+    functions and optional trained-model RData, sets all simulation parameters
+    (Nsim, N_tradeoff, tol_pos, loss_tol, effect_size, ...), and selects which
+    phases to run.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports: shiny, bslib, DT
+Suggests: MASS, nortest, moments, tseries, DescTools, coin, Rfit,
+        LaplacesDemon, VGAM, evd
+RoxygenNote: 7.3.1
+NeedsCompilation: no
+Packaged: 2026-05-23 19:35:03 UTC; root
+Author: Benedict Kongyir [aut, cre]
+Maintainer: Benedict Kongyir <you@example.com>
