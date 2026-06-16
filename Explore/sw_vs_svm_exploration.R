@@ -5608,3 +5608,42 @@ plot_norm_roc_overlay_base(
 
 # save results
 save(expl, sw_thr, svm_thr, grid_used, file = "sw_vs_svm_results.RData")
+
+
+#' =============================================================================
+#' SECTION 6 — FIXED-THRESHOLD VARIANT (SW = 0.05, SVM = 0.50, for every n)
+#' Instead of the per-n "optimal" thresholds used above, mark each curve at
+#' the conventional fixed cutoffs: alpha = 0.05 for SW, decision boundary
+#' = 0.50 for SVM. Same sample sizes / ROC curves, different operating points.
+#' =============================================================================
+fixed_sample_sizes <- c(10, 20, 30, 40, 50)
+
+sw_thr_fixed  <- setNames(rep(0.05, length(fixed_sample_sizes)), as.character(fixed_sample_sizes))
+svm_thr_fixed <- setNames(rep(0.50, length(fixed_sample_sizes)), as.character(fixed_sample_sizes))
+
+expl_fixed <- explore_norm_roc_overlay(
+  sample_sizes       = fixed_sample_sizes,
+  sw_threshold_by_n  = sw_thr_fixed,
+  svm_threshold_by_n = svm_thr_fixed,
+  trained_models     = trained_models,
+  svm_model_name     = "SVM",
+  threshold_grid     = grid_used,
+  H1_dist            = "exponential",
+  Nsim               = 10000,
+  center_by          = "median"
+)
+
+#' print summary table (fixed-threshold variant)
+wide_fixed <- build_wide_table(expl_fixed)
+print(wide_fixed, row.names = FALSE)
+write.csv(wide_fixed, file.path(results_dir, "sw_vs_svm_roc_summary_fixed.csv"), row.names = FALSE)
+
+#' ROC figure (fixed-threshold variant)
+plot_norm_roc_overlay_base(
+  expl_fixed,
+  file  = file.path(results_dir, "sw_vs_svm_roc_overlay_fixed.pdf"),
+  title = "Normality-detection ROC by sample size: SW (alpha=0.05) vs SVM (t=0.50)"
+)
+
+# save results (fixed-threshold variant)
+save(expl_fixed, sw_thr_fixed, svm_thr_fixed, grid_used, file = "sw_vs_svm_results_fixed.RData")
