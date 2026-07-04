@@ -7,12 +7,21 @@ and drives its `run_simulation()` engine through all six phases.
 
 ## Install
 
+# Install from Github
 ```r
-# from a local source tree
-install.packages("pretestsim", repos = NULL, type = "source")
-# or
-# remotes::install_local("path/to/pretestsim")
+# Install from GitHub
+install.packages("remotes")
+
+remotes::install_github(
+  "bkkongyir1106/Academia",
+  subdir = "R_pkg/pretestsim",
+  dependencies = TRUE
+)
+
+library(pretestsim)
+run_app()
 ```
+
 
 App dependencies (`shiny`, `bslib`, `DT`) install automatically. The framework's
 own packages are *Suggests* and are installed on first use when possible
