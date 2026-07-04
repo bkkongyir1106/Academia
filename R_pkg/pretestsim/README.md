@@ -9,13 +9,26 @@ and drives its `run_simulation()` engine through all six phases.
 
 # Install from Github
 ```r
-# Install from GitHub
-install.packages("remotes")
+# Recommended installation from GitHub
 
+# 1. Restart R before installing.
+
+# 2. On Windows, prefer CRAN binary packages.
+options(pkgType = "binary")
+
+# 3. Install the required app packages.
+install.packages(c("shiny", "bslib", "DT"), type = "binary")
+
+# 4. Install remotes.
+install.packages("remotes", type = "binary")
+
+# 5. Install pretestsim from GitHub.
 remotes::install_github(
   "bkkongyir1106/Academia",
   subdir = "R_pkg/pretestsim",
-  dependencies = TRUE
+  dependencies = NA,
+  upgrade = "never",
+  build_vignettes = FALSE
 )
 
 library(pretestsim)
