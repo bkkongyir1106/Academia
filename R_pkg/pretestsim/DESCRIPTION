@@ -3,7 +3,7 @@ Type: Package
 Title: Interactive Studio for the Pretest-Simulation Framework
 Version: 0.1.0
 Authors@R: person("Benedict", "Kongyir", role = c("aut", "cre"),
-                  email = "you@example.com")
+                  email = "kongyirbenkk@gmail.com")
 Description: A Shiny dashboard that drives the original, unmodified
     pretest-simulation framework ('user_framework_rpk_v3_0.R', bundled in
     'inst/framework') through the six phases of its run_simulation() engine:
@@ -25,3 +25,5 @@ NeedsCompilation: no
 Packaged: 2026-05-23 19:35:03 UTC; root
 Author: Benedict Kongyir [aut, cre]
 Maintainer: Benedict Kongyir <kongyirbenkk@gmail.com>
+URL: https://github.com/bkkongyir1106/Academia/tree/main/R_pkg/pretestsim
+BugReports: https://github.com/bkkongyir1106/Academia/issues
