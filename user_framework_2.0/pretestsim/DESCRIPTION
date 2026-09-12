@@ -1,0 +1,27 @@
+Package: pretestsim
+Type: Package
+Title: GitHub-Backed Interactive Studio for Adaptive Normality
+        Pretesting
+Version: 0.2.0
+Authors@R: person("Benedict", "Kongyir", role = c("aut", "cre"),
+                  email = "kongyirbenkk@gmail.com")
+Description: A Shiny dashboard and programmatic loader for the adaptive
+    normality-pretesting framework. Framework R code, machine-learning support
+    code, and trained model RData files are resolved from the package GitHub
+    repository at runtime and cached locally, so the package works across
+    Windows, macOS, and Linux without local absolute paths.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports: shiny, bslib, DT, tools, utils, grDevices, graphics, stats
+Suggests: MASS, nortest, moments, tseries, DescTools, coin, Rfit,
+        LaplacesDemon, VGAM, evd, Lmoments, robustbase, pracma, ineq,
+        caret, glmnet, randomForest, gbm, nnet, kernlab, e1071,
+        foreach, doParallel, pROC, pacman
+RoxygenNote: 7.3.1
+NeedsCompilation: no
+URL: https://github.com/bkkongyir1106/Academia/tree/main/R_pkg
+BugReports: https://github.com/bkkongyir1106/Academia/issues
+Packaged: 2026-09-12 21:53:59 UTC; benedictkongyir
+Author: Benedict Kongyir [aut, cre]
+Maintainer: Benedict Kongyir <kongyirbenkk@gmail.com>
