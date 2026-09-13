@@ -103,6 +103,70 @@ build_theme <- function() {
     .navbar .nav-link { color: #fff !important; font-weight: 600; border-radius: 7px; margin: 4px 3px; }
     .navbar .nav-link.active { background-color: #4c8bf5 !important; }
     pre, .shiny-text-output { color: #e6edf3; }
+    #pretestsim-busy-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      z-index: 20000;
+      background: rgba(76, 139, 245, 0.16);
+      opacity: 0;
+      transition: opacity 140ms ease-in-out;
+      overflow: hidden;
+    }
+    #pretestsim-busy-bar .bar {
+      width: 38%;
+      height: 100%;
+      background: linear-gradient(90deg, #58a6ff, #3fb950, #58a6ff);
+      box-shadow: 0 0 14px rgba(88, 166, 255, 0.55);
+      animation: pretestsim-progress-slide 1.15s ease-in-out infinite;
+    }
+    body.pretestsim-running #pretestsim-busy-bar {
+      opacity: 1;
+    }
+    .run-progress-panel {
+      display: none;
+      margin-top: 0.75rem;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      background: #161b22;
+      padding: 0.75rem 0.85rem;
+    }
+    body.pretestsim-running .run-progress-panel {
+      display: block;
+    }
+    .run-progress-title {
+      color: #e6edf3;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 0.45rem;
+    }
+    .run-progress-track {
+      height: 8px;
+      border-radius: 999px;
+      background: #0f1419;
+      border: 1px solid #30363d;
+      overflow: hidden;
+    }
+    .run-progress-fill {
+      width: 42%;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #4c8bf5, #3fb950);
+      animation: pretestsim-progress-slide 1.15s ease-in-out infinite;
+    }
+    .run-progress-detail {
+      color: #8b949e;
+      font-size: 0.78rem;
+      margin-top: 0.45rem;
+      line-height: 1.3;
+    }
+    @keyframes pretestsim-progress-slide {
+      0% { transform: translateX(-110%); }
+      50% { transform: translateX(85%); }
+      100% { transform: translateX(260%); }
+    }
     .phase-grid-wide {
       gap: 1rem;
       align-items: stretch;
@@ -190,6 +254,17 @@ app_ui <- function(raw_base = .default_raw_base()) {
   bslib::page_navbar(
     title = "Pretest Simulation Studio",
     theme = build_theme(),
+    header = tagList(
+      tags$div(id = "pretestsim-busy-bar", tags$div(class = "bar")),
+      tags$script(HTML("
+        $(document).on('shiny:busy', function() {
+          document.body.classList.add('pretestsim-running');
+        });
+        $(document).on('shiny:idle', function() {
+          document.body.classList.remove('pretestsim-running');
+        });
+      "))
+    ),
     fillable = TRUE,
     sidebar = bslib::sidebar(
       width = 390,
@@ -270,7 +345,13 @@ app_ui <- function(raw_base = .default_raw_base()) {
             selected = c(1, 2, 4)
           ),
           uiOutput("threshold_ui"),
-          actionButton("run", "Run simulation", class = "btn-primary w-100")
+          actionButton("run", "Run simulation", class = "btn-primary w-100"),
+          div(
+            class = "run-progress-panel",
+            div(class = "run-progress-title", "Simulation running"),
+            div(class = "run-progress-track", div(class = "run-progress-fill")),
+            div(class = "run-progress-detail", "Please keep this browser tab open. Results will appear when the selected phases finish.")
+          )
         )
       )
     ),
@@ -487,15 +568,26 @@ app_server <- function(input, output, session, raw_base = .default_raw_base()) {
     old <- setwd(wd)
     on.exit(setwd(old), add = TRUE)
 
-    log <- capture.output({
-      res <- tryCatch(
-        do.call(fw$run_simulation, args),
-        error = function(e) {
-          cat("ERROR:", conditionMessage(e), "\n")
-          NULL
-        }
-      )
-    }, type = "output")
+    log <- shiny::withProgress(
+      message = "Running pretest simulation",
+      detail = "Preparing selected phases...",
+      value = 0.1,
+      {
+        capture.output({
+          res <- tryCatch(
+            {
+              shiny::incProgress(0.25, detail = "Running simulation framework...")
+              do.call(fw$run_simulation, args)
+            },
+            error = function(e) {
+              cat("ERROR:", conditionMessage(e), "\n")
+              NULL
+            }
+          )
+          shiny::incProgress(0.65, detail = "Collecting results...")
+        }, type = "output")
+      }
+    )
 
     run_state$results <- if (exists("res")) res else NULL
     run_state$log <- paste(log, collapse = "\n")
