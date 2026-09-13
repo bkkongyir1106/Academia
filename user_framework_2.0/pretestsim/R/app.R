@@ -7,60 +7,73 @@ DIST_CHOICES <- c(
 TEST_CODES <- c("SW", "SF", "LF", "KS", "JB", "SKEW", "KURT", "DAP", "AD", "CVM")
 
 FAMILIES <- list(
-  onesample_t_vs_sign = list(
-    label = "One-sample t-test vs sign test",
-    test_type = "onesample_ttest_vs_sign",
+  one_sample = list(
+    label = "One-sample: t-test vs selected alternative",
+    test_type = "onesample_ttest",
     functions = c(
       gen_data = "onesample_data",
       get_parameters = "onesample_parameters",
       fn_to_get_norm_obj = "raw_data",
-      fn_for_ds_test_1 = "one_sample_t_test",
-      fn_for_ds_test_2 = "sign_test"
+      fn_for_ds_test_1 = "one_sample_t_test"
+    ),
+    alternatives = list(
+      sign = list(label = "Sign test", suffix = "sign", fn_for_ds_test_2 = "sign_test"),
+      randomized_sign = list(label = "Randomized sign test", suffix = "randomized_sign", fn_for_ds_test_2 = "randomized_sign_pvalue"),
+      permutation = list(label = "Sign-flip permutation t-test", suffix = "permutation", fn_for_ds_test_2 = "one_sample_perm_test")
     ),
     effect_size = 0.5,
     center_by = "median",
     distributions = c("exponential", "normal"),
     extra = list()
   ),
-  twosample_t_vs_mann_whitney = list(
-    label = "Two-sample t-test vs Mann-Whitney U",
-    test_type = "twosample_ttest_vs_mann_whitney",
+  two_sample = list(
+    label = "Two-sample: t-test vs selected alternative",
+    test_type = "twosample_ttest",
     functions = c(
       gen_data = "two_sample_data",
       get_parameters = "twosample_parameters",
       fn_to_get_norm_obj = "raw_data",
-      fn_for_ds_test_1 = "twosample_t_test",
-      fn_for_ds_test_2 = "Mann_whitney_U_test"
+      fn_for_ds_test_1 = "twosample_t_test"
+    ),
+    alternatives = list(
+      mann_whitney = list(label = "Mann-Whitney U", suffix = "mann_whitney", fn_for_ds_test_2 = "Mann_whitney_U_test"),
+      permutation = list(label = "Label-permutation Welch test", suffix = "permutation", fn_for_ds_test_2 = "two_sample_perm_test")
     ),
     effect_size = 0.5,
     center_by = "median",
     distributions = c("exponential", "normal"),
     extra = list()
   ),
-  anova_vs_kruskal_wallis = list(
-    label = "One-way ANOVA vs Kruskal-Wallis",
-    test_type = "anova_vs_kruskal_wallis",
+  anova = list(
+    label = "One-way ANOVA: F-test vs selected alternative",
+    test_type = "anova",
     functions = c(
       gen_data = "anova_gen_data",
       get_parameters = "anova_parameters",
       fn_to_get_norm_obj = "anova_residuals",
-      fn_for_ds_test_1 = "one_way_anova",
-      fn_for_ds_test_2 = "kruskal_wallis_test"
+      fn_for_ds_test_1 = "one_way_anova"
+    ),
+    alternatives = list(
+      kruskal_wallis = list(label = "Kruskal-Wallis", suffix = "kruskal_wallis", fn_for_ds_test_2 = "kruskal_wallis_test"),
+      permutation = list(label = "Permutation ANOVA", suffix = "permutation", fn_for_ds_test_2 = "permutation_anova")
     ),
     effect_size = "0, 0, 0.5",
     center_by = "median",
     distributions = c("exponential", "normal"),
     extra = list()
   ),
-  regression_ols_vs_rank = list(
-    label = "OLS regression vs rank-based regression",
-    test_type = "regression_ols_vs_rank",
+  regression = list(
+    label = "Regression: OLS slope test vs selected alternative",
+    test_type = "regression_ols",
     functions = c(
       gen_data = "reg_data",
       get_parameters = "reg_parameters",
       fn_to_get_norm_obj = "reg_residuals",
-      fn_for_ds_test_1 = "simple_linear_reg",
-      fn_for_ds_test_2 = "rank_regression"
+      fn_for_ds_test_1 = "simple_linear_reg"
+    ),
+    alternatives = list(
+      rank = list(label = "Rank-based regression", suffix = "rank", fn_for_ds_test_2 = "rank_regression"),
+      permutation = list(label = "Permutation regression", suffix = "permutation", fn_for_ds_test_2 = "perm_regression")
     ),
     effect_size = 0.5,
     center_by = "mean",
@@ -327,7 +340,7 @@ app_ui <- function(raw_base = .default_raw_base()) {
           radioButtons(
             "approach",
             NULL,
-            c("Classical" = "classical", "Fisher SW + AD" = "fisher", "Machine learning" = "ml"),
+            c("Classical" = "classical", "Custom" = "custom"),
             selected = "classical"
           ),
           conditionalPanel(
@@ -338,7 +351,16 @@ app_ui <- function(raw_base = .default_raw_base()) {
                                inline = TRUE)
           ),
           conditionalPanel(
-            "input.approach == 'ml'",
+            "input.approach == 'custom'",
+            selectInput(
+              "custom_method",
+              "Custom normality test",
+              c("Fisher SW + AD" = "fisher", "Machine learning" = "ml"),
+              selected = "fisher"
+            )
+          ),
+          conditionalPanel(
+            "input.approach == 'custom' && input.custom_method == 'ml'",
             selectInput("ml_model", "Adaptive ML model", c("SVM", "RF", "GBM", "ANN", "LR", "KNN"), selected = "SVM"),
             checkboxGroupInput("ml_roc_models", "Phase 1 ML ROC models",
                                c("RF", "GBM", "ANN", "SVM", "LR", "KNN"),
@@ -352,6 +374,7 @@ app_ui <- function(raw_base = .default_raw_base()) {
           value = "design",
           selectInput("family", "Downstream comparison",
                       choices = stats::setNames(names(FAMILIES), vapply(FAMILIES, `[[`, character(1), "label"))),
+          uiOutput("downstream_alt_ui"),
           selectInput("dist", "Non-normal distribution", setdiff(DIST_CHOICES, "normal"), selected = "exponential"),
           radioButtons("center_by", "Center by", c("median", "mean"), selected = "median", inline = TRUE),
           textInput("effect_size", "Effect size", value = "0.5")
@@ -470,6 +493,15 @@ app_server <- function(input, output, session, raw_base = .default_raw_base()) {
     tags$div(class = paste("small", cls), status())
   })
 
+  output$downstream_alt_ui <- renderUI({
+    spec <- FAMILIES[[input$family]]
+    choices <- stats::setNames(
+      names(spec$alternatives),
+      vapply(spec$alternatives, `[[`, character(1), "label")
+    )
+    selectInput("downstream_alt", "Alternative downstream test", choices = choices)
+  })
+
   needs_threshold <- reactive(any(c("3", "4", "5") %in% input$phases) && !("2" %in% input$phases))
   output$threshold_ui <- renderUI({
     if (!needs_threshold()) return(NULL)
@@ -481,7 +513,10 @@ app_server <- function(input, output, session, raw_base = .default_raw_base()) {
 
   family_functions <- function(fw, family_id) {
     spec <- FAMILIES[[family_id]]
-    out <- lapply(spec$functions, function(name) {
+    alt_id <- input$downstream_alt %||% names(spec$alternatives)[1]
+    alt <- spec$alternatives[[alt_id]] %||% spec$alternatives[[1]]
+    functions <- c(spec$functions, fn_for_ds_test_2 = alt$fn_for_ds_test_2)
+    out <- lapply(functions, function(name) {
       if (!exists(name, envir = fw, mode = "function", inherits = FALSE)) {
         stop("Framework function not found: ", name, call. = FALSE)
       }
@@ -510,7 +545,7 @@ app_server <- function(input, output, session, raw_base = .default_raw_base()) {
     if (identical(input$approach, "classical")) {
       return(list(method = "classical", config = list(norm_test = input$norm_test)))
     }
-    if (identical(input$approach, "fisher")) {
+    if (identical(input$custom_method, "fisher")) {
       return(fisher_config())
     }
 
@@ -533,7 +568,9 @@ app_server <- function(input, output, session, raw_base = .default_raw_base()) {
   }
 
   roc_config <- function(fw) {
-    if (!identical(input$approach, "ml")) return(norm_config(fw))
+    if (!identical(input$approach, "custom") || !identical(input$custom_method, "ml")) {
+      return(norm_config(fw))
+    }
     resources <- ml_rv()
     if (is.null(resources)) {
       resources <- load_ml_resources_from_github(
@@ -554,14 +591,21 @@ app_server <- function(input, output, session, raw_base = .default_raw_base()) {
 
   build_args <- function(fw) {
     spec <- FAMILIES[[input$family]]
+    alt_id <- input$downstream_alt %||% names(spec$alternatives)[1]
+    alt <- spec$alternatives[[alt_id]] %||% spec$alternatives[[1]]
     phases <- as.integer(input$phases)
-    selected_norm_config <- if (identical(input$approach, "ml") && identical(phases, 1L)) roc_config(fw) else norm_config(fw)
+    custom_label <- if (identical(input$approach, "classical")) input$norm_test else input$custom_method
+    selected_norm_config <- if (
+      identical(input$approach, "custom") &&
+        identical(input$custom_method, "ml") &&
+        identical(phases, 1L)
+    ) roc_config(fw) else norm_config(fw)
     args <- c(
       family_functions(fw, input$family),
       list(
         Nsim = input$Nsim,
         N_tradeoff = input$N_tradeoff,
-        test_type = paste(spec$test_type, input$approach, sep = "_"),
+        test_type = paste(spec$test_type, "vs", alt$suffix, custom_label, sep = "_"),
         distributions = c(input$dist, "normal"),
         norm_config = selected_norm_config,
         threshold_grid = seq(0, 1, by = input$grid_by),
@@ -576,7 +620,7 @@ app_server <- function(input, output, session, raw_base = .default_raw_base()) {
         effect_sizes_plot = parse_nums(input$effect_sizes_plot, c(0, 0.2, 0.5, 0.8)),
         sig_levels = seq(0, 1, by = input$sig_by),
         norm_test = TEST_CODES,
-        selected_tests = if (identical(input$approach, "classical")) input$battery else input$norm_test,
+        selected_tests = if (identical(input$approach, "classical")) input$battery else input$custom_method,
         phases = phases,
         pretest_threshold = if (needs_threshold()) parse_threshold(input$pretest_threshold) else NULL,
         per_n_thresholds = isTRUE(input$per_n),
