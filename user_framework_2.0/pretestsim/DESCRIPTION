@@ -1,7 +1,7 @@
 Package: pretestsim
 Type: Package
 Title: GitHub-Backed Interactive Studio for Adaptive Normality Pretesting
-Version: 0.2.2
+Version: 0.2.3
 Authors@R: person("Benedict", "Kongyir", role = c("aut", "cre"),
                   email = "kongyirbenkk@gmail.com")
 Description: A Shiny dashboard and programmatic loader for the adaptive

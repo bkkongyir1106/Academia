@@ -125,6 +125,23 @@ build_theme <- function() {
     body.pretestsim-running #pretestsim-busy-bar {
       opacity: 1;
     }
+    .run-progress-toast {
+      display: none;
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 20001;
+      width: 360px;
+      max-width: calc(100vw - 2rem);
+      border: 1px solid #58a6ff;
+      border-radius: 8px;
+      background: #161b22;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.38);
+      padding: 0.85rem 1rem;
+    }
+    body.pretestsim-running .run-progress-toast {
+      display: block;
+    }
     .run-progress-panel {
       display: none;
       margin-top: 0.75rem;
@@ -256,12 +273,37 @@ app_ui <- function(raw_base = .default_raw_base()) {
     theme = build_theme(),
     header = tagList(
       tags$div(id = "pretestsim-busy-bar", tags$div(class = "bar")),
+      tags$div(
+        class = "run-progress-toast",
+        div(class = "run-progress-title", "Simulation running"),
+        div(class = "run-progress-track", div(class = "run-progress-fill")),
+        div(class = "run-progress-detail", "The selected phases are running. This may take a few minutes for larger simulation settings.")
+      ),
       tags$script(HTML("
-        $(document).on('shiny:busy', function() {
+        function pretestsimShowProgress() {
           document.body.classList.add('pretestsim-running');
-        });
-        $(document).on('shiny:idle', function() {
+          var runButton = document.getElementById('run');
+          if (runButton) {
+            runButton.classList.add('disabled');
+            runButton.setAttribute('aria-busy', 'true');
+          }
+        }
+        function pretestsimHideProgress() {
           document.body.classList.remove('pretestsim-running');
+          var runButton = document.getElementById('run');
+          if (runButton) {
+            runButton.classList.remove('disabled');
+            runButton.removeAttribute('aria-busy');
+          }
+        }
+        document.addEventListener('click', function(event) {
+          var target = event.target && event.target.closest ? event.target.closest('#run') : null;
+          if (target) pretestsimShowProgress();
+        }, true);
+        $(document).on('shiny:busy', pretestsimShowProgress);
+        $(document).on('shiny:idle', pretestsimHideProgress);
+        window.addEventListener('pageshow', function() {
+          if (!document.body.classList.contains('shiny-busy')) pretestsimHideProgress();
         });
       "))
     ),
