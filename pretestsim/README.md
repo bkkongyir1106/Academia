@@ -1,24 +1,32 @@
 # pretestsim
 
-`pretestsim` is an R package for evaluating the downstream utility of adaptive
-normality pretesting. It compares a fixed parametric procedure, a fixed
-alternative procedure, and an adaptive procedure that chooses between them.
+**Simulation-based evaluation of normality pretesting in statistical inference**
 
-You can use it in two ways:
+`pretestsim` provides a framework for studying how normality pretesting affects
+subsequent statistical inference. It compares fixed parametric and alternative
+procedures with an adaptive procedure that selects between them using a
+normality test. Simulation results describe Type I error, power, and the
+conditions under which pretesting improves or reduces performance.
 
-- through the interactive Shiny dashboard;
-- directly from R scripts, including reproducible analyses and cluster jobs.
+The package supports one-sample comparisons, two-sample comparisons, one-way
+analysis of variance, and linear regression. Users can specify the generating
+distribution, sample sizes, effect sizes, downstream procedures, and normality
+assessment. Functions are provided for threshold selection, ROC analysis,
+area-under-the-curve summaries, and graphical presentation of results.
 
-The Paper A edition bundles the framework with the package. Once installed,
-loading it does not download framework files or install other packages.
-Classical normality procedures are supported, and **Fisher SW + AD** is the
-only built-in custom normality option.
+Analyses can be conducted through an interactive Shiny application or directly
+in R. The examples below illustrate common applications; the framework can be
+configured for other simulation designs through its data-generation and testing
+interfaces.
 
-## Requirements
+## Installation
 
-Use R 4.1.0 or later. RStudio is optional but convenient for interactive use.
+`pretestsim` requires R (>= 4.1.0). RStudio is optional.
 
-Install the dashboard dependencies and the packages used by the examples below:
+### Dependencies
+
+Install the application dependencies and the packages used in the normality-test
+examples:
 
 ```r
 install.packages(c(
@@ -27,36 +35,18 @@ install.packages(c(
 ))
 ```
 
-Some downstream procedures and distributions need additional packages. For the
-additional Paper A applications, install:
+Additional distributions and downstream procedures may require:
 
 ```r
 install.packages(c("MASS", "LaplacesDemon", "evd", "Rfit"))
 ```
 
-The full list of optional dependencies is in `DESCRIPTION`. If an optional
-package is missing, install the package named in the error message and rerun.
+The complete dependency list is given in `DESCRIPTION`. Optional packages are
+required only for the procedures that use them.
 
-## Installation from the Publication Archive
+### From a source archive
 
-Extract `Paper_A_publication_code.zip`. The installable source package is:
-
-```text
-Paper_A_publication/validation/pretestsim_1.0.0.tar.gz
-```
-
-In R or RStudio, run the following and select that `.tar.gz` file:
-
-```r
-install.packages(
-  file.choose(),
-  repos = NULL,
-  type = "source"
-)
-```
-
-Alternatively, supply the path directly. Replace the example path with the
-location of the file on your computer:
+Download or locate `pretestsim_1.0.0.tar.gz`, then install it from R:
 
 ```r
 install.packages(
@@ -66,20 +56,27 @@ install.packages(
 )
 ```
 
-Load the package and check the version:
+Replace the path with the archive's location. In an interactive session, the
+archive can also be selected using a file dialog:
+
+```r
+install.packages(file.choose(), repos = NULL, type = "source")
+```
+
+Check the installation:
 
 ```r
 library(pretestsim)
-
 packageVersion("pretestsim")
-# Expected for this release: '1.0.0'
+# [1] '1.0.0'
 ```
 
-## Installation from GitHub
+The framework is included in the package. An internet connection is not needed
+to load the installed framework or run simulations.
 
-The existing project uses the repository `bkkongyir1106/Academia`. **After the
-publication edition has been uploaded to `user_framework_2.0/pretestsim`**, users
-can install it with:
+### From GitHub
+
+The repository installation command is:
 
 ```r
 install.packages("remotes")
@@ -90,150 +87,115 @@ remotes::install_github(
   force = TRUE,
   upgrade = "never"
 )
-
-library(pretestsim)
-packageVersion("pretestsim")
 ```
 
-The `subdir` must match where the package is published. For example, if the
-publication folder is uploaded unchanged at the repository root, use
-`subdir = "Paper_A_publication/pretestsim"` instead. These commands describe the
-publication layout; preparing the local code bundle does not update GitHub.
-Use the accompanying source archive to install this version independently of
-the repository's current contents.
+This command installs the version available at that repository path. Version
+1.0.0 must be uploaded there before it can be installed through GitHub; use the
+source archive to install the accompanying release. If the package is published
+at a different location within the repository, adjust `subdir` accordingly.
 
-## Reinstalling or Updating
+### Updating an existing installation
 
-If an earlier version is already loaded, restart R first. In RStudio, choose
-**Session → Restart R**. Then reinstall the new source archive:
+Restart R before replacing a package that is already loaded. In RStudio, select
+**Session → Restart R**, then reinstall the source archive or use the GitHub
+command above. Confirm the version and library location:
 
 ```r
-install.packages(file.choose(), repos = NULL, type = "source")
-
 library(pretestsim)
 packageVersion("pretestsim")
 find.package("pretestsim")
 ```
 
-Installing into the same R library replaces the earlier package version.
-The bundled edition does not use the old downloaded-asset cache, so clearing
-that cache is unnecessary. Do not pass the old `refresh`, `raw_base`, or
-`refresh_assets` arguments to this version.
+Version 1.0.0 loads its bundled framework. The `refresh`, `raw_base`, and
+`refresh_assets` arguments from earlier versions are no longer used.
 
-## Package Files
+## Interactive application
 
-The package source contains the files needed to load the framework and launch
-the dashboard:
-
-```text
-pretestsim/
-  DESCRIPTION
-  NAMESPACE
-  LICENSE
-  README.md
-  NEWS.md
-  R/
-    app.R
-    loader.R
-    run_app.R
-    pretestsim-package.R
-  inst/
-    framework/
-      framework.R
-  man/
-  tests/
-```
-
-Install the whole package rather than sourcing the files in `R/` individually.
-No external framework file or trained-model file is needed for normal use.
-
-## Running the Shiny Dashboard
-
-Open the dashboard with:
+Launch the Shiny application with:
 
 ```r
 library(pretestsim)
-
 pretestsim::run_app()
 ```
 
-Inside the dashboard:
+To configure an analysis:
 
-1. Wait for **Loaded bundled framework. Ready to run.**
-2. Choose **Classical** or **Custom** under **Normality approach**.
-3. For Classical, select the adaptive-routing pretest and the Phase 1 ROC
-   battery. For Custom, select **Fisher SW + AD**.
-4. Choose the downstream comparison, alternative test, distribution, centering
-   convention, and effect size.
-5. Set the simulation parameters and select the phases to run.
-6. Click **Run simulation**.
-7. Inspect the phase tabs, and use **Log & Downloads** to save the results.
+1. Select **Classical** or **Custom** under **Normality approach**. Classical
+   mode provides standard normality tests; Custom mode currently offers
+   **Fisher SW + AD**.
+2. Select the downstream comparison, alternative procedure, generating
+   distribution, centering convention, and effect size.
+3. Specify the simulation parameters and analytical phases.
+4. Click **Run simulation**.
+5. View the results in the phase tabs and download files from **Log & Downloads**.
 
-The app stays idle when opened and when settings are changed. The simulation
-and running indicator start only after **Run simulation** is clicked. Loading
-the framework again with **Load framework** does not run an analysis.
+The framework loads automatically when the application opens. Simulations begin
+only when **Run simulation** is selected.
 
-### First Test Run
+### A short introductory run
 
-Start with small settings to confirm the installation works:
+The following settings provide a quick installation check:
 
 | Setting | Value |
 | --- | --- |
 | Downstream comparison | One-sample |
-| Alternative downstream test | Sign test |
+| Alternative procedure | Sign test |
 | Normality approach | Classical |
 | Adaptive-routing pretest | SW |
 | Evaluation repetitions (`Nsim`) | 100 |
 | Calibration repetitions (`N_tradeoff`) | 100 |
 | Sample sizes | `10,20` |
 | Threshold-grid increment | `0.1` |
-| Selected phases | 1, 2 and 4 |
+| Phases | 1, 2 and 4 |
 
-After the run finishes, inspect the ROC plot, selected threshold, and the power
-and Type I error plots and tables. Repeat with **Custom → Fisher SW + AD** to
-check that option. Small runs are software checks; their numerical results are
-not precise enough for publication.
+This run produces normality ROC curves, a selected routing threshold, and power
+and Type I error summaries. The small number of repetitions is intended for
+checking the workflow. Repeat the run with **Custom → Fisher SW + AD** to examine
+the custom normality option.
 
-### Simulation Phases
+### Analytical phases
 
-| Phase | Result |
+| Phase | Analysis |
 | --- | --- |
 | 1 | Normality-test ROC curves |
-| 2 | Threshold trade-off analysis and selected routing threshold |
+| 2 | Threshold selection based on Type I error and power |
 | 3 | Downstream power versus Type I error curves |
 | 4 | Power, Type I error, and AUC summaries across sample sizes |
 | 5 | Power across effect sizes at a fixed sample size |
 
-Phases 3–5 need a routing threshold. Include Phase 2 to select it automatically,
-or supply a threshold when Phase 2 is omitted. The dashboard displays the
-threshold input when it is needed.
+Phases 3–5 require a routing threshold. Include Phase 2 to select a threshold,
+or supply one directly when Phase 2 is omitted. The application displays the
+threshold input when needed.
 
-The dashboard writes results into a temporary session directory. Download the
-files you need before closing the R session. Use the scripted workflow below
-for results saved directly to a folder you choose.
+Application outputs are stored in a temporary session directory. Download the
+required files before closing the R session. Scripted analyses can instead write
+to a persistent directory specified by `output_dir`.
 
-## Running Without the Shiny Dashboard
+## Programmatic use
 
-Load the bundled functions:
+Load the framework functions into an environment:
 
 ```r
 library(pretestsim)
-
 fw <- pretestsim::load_framework()
 ```
 
-`fw` is an environment containing the framework functions. You can inspect a
-function's arguments before using it:
+Inspect the available arguments with:
 
 ```r
 args(fw$run_simulation)
 args(fw$generate_data)
 ```
 
-Use `set.seed()` before a simulation to make a run reproducible under the same
-R environment, settings, and package versions.
+The main simulation function accepts functions for data generation, parameter
+specification, extraction of the normality-assessment object, and the two
+downstream procedures. This interface allows the same workflow to be used across
+inferential settings. Use `set.seed()` to reproduce a simulation under the same
+settings, R version, and dependency versions.
 
-## Example: One-Sample t-Test versus Sign Test
+## Examples
+
+### One-sample t-test and Sign test
 
 This example uses Shapiro–Wilk normality pretesting to choose between the
 one-sample t-test and the Sign test. It runs the normality ROC, threshold
@@ -301,9 +263,10 @@ and `test_type` replaces files from the previous run.
 
 Here, median centering defines the one-sample null. Under an asymmetric
 population, the t-test's mean target can differ from that median target;
-interpret its Type I error accordingly, as discussed in Paper A.
+the comparison therefore evaluates the consequences of using a mean-based
+procedure for a median-based inferential target.
 
-## Example: Two-Sample Welch t-Test versus Mann–Whitney U
+### Two-sample Welch t-test and Mann–Whitney U test
 
 Use the two-sample generators and downstream procedures:
 
@@ -341,9 +304,9 @@ res_two <- fw$run_simulation(
 Each sample size is **per group**. The parametric branch is selected only when
 both samples pass the normality pretest. Under the common-shape, common-scale
 location-shift model used here, the two procedures address the same median-shift
-null; there is no parameter mismatch in this design.
+null. This interpretation depends on the common location-shift structure.
 
-## Example: One-Sample t-Test versus Randomized Sign Test
+### Randomized Sign test
 
 Change the alternative downstream function to `fw$randomized_sign_pvalue`:
 
@@ -377,10 +340,7 @@ res_randomized <- fw$run_simulation(
 )
 ```
 
-This is an additional usage example; it does not replace the ordinary Sign test
-in the reported Paper A comparison.
-
-## Example: Fisher SW + AD without Shiny
+### Fisher combination of Shapiro–Wilk and Anderson–Darling tests
 
 Use the bundled Fisher combination through the custom interface:
 
@@ -423,73 +383,80 @@ res_fisher <- fw$run_simulation(
 )
 ```
 
-The SW and AD p-values come from the same sample and are dependent. Treat their
-Fisher combination as a routing score whose performance is evaluated through
-the simulations; its chi-square reference is not guaranteed to yield an exactly
-uniform null p-value.
+The Shapiro–Wilk and Anderson–Darling p-values are dependent because they are
+computed from the same sample. The Fisher combination is evaluated as a routing
+score; its chi-square reference does not imply exact null calibration.
 
-## Choosing Simulation Sizes
+## Simulation settings and reproducibility
 
-`N_tradeoff` controls threshold calibration. `Nsim` controls the other requested
-evaluation phases. These are different from the sample size of each simulated
-dataset.
+`N_tradeoff` is the number of repetitions used to select the routing threshold.
+`Nsim` controls the other requested evaluation phases. `sample_sizes` specifies
+the size of each simulated dataset, rather than the number of repetitions.
 
-| Purpose | `Nsim` | `N_tradeoff` |
+| Purpose | Example `Nsim` | Example `N_tradeoff` |
 | --- | ---: | ---: |
 | Installation check | 100 | 100 |
-| Exploratory example | 1,000 | 1,000 |
-| Paper A representative applications | 100,000 | 1,000,000 |
+| Exploratory analysis | 1,000 | 1,000 |
+| Larger simulation study | 100,000 | 1,000,000 |
 
-For the publication settings, also use the manuscript threshold grid with
-increments of `0.005`. Larger runs take longer; permutation procedures also
-perform internal resampling within each repetition. For the exact Paper A
-settings, use the dedicated publication scripts instead of adapting a quick
-example by changing only the repetition counts.
+These values illustrate different computational budgets. Choose repetition
+counts according to the precision needed for the operating characteristics and
+threshold comparison. Increasing repetitions reduces Monte Carlo variability;
+it does not increase the sample size within each dataset.
 
-## Reproducing Paper A Analyses
+The threshold grid determines the resolution of threshold selection. For
+example, `seq(0, 1, by = 0.005)` evaluates thresholds in increments of 0.005.
+Permutation procedures require additional resampling within each repetition and
+can take substantially longer than analytical tests.
 
-The complete publication archive contains scripts outside the installed package:
+For reproducible studies, retain the seed, simulation settings, result objects,
+and software versions:
 
-```text
-Paper_A_publication/
-  R/
-  config/
-  scripts/
-    run_main.R
-    run_supplement.R
-    run_broad.R
-    run_assessment.R
-    recalculate_saved_assessment.R
-    export_tables.R
-  docs/
-    result_index.csv
-    analysis_notes.md
-  pretestsim/
+```r
+sessionInfo()
+saveRDS(res, file = "simulation_results.rds")
 ```
 
-From that folder, run these commands in a terminal:
+The full set of generated paths is available in `res$files`. A saved result can
+be read with:
 
-```sh
-# List main-paper jobs without running simulations.
-Rscript scripts/run_main.R plan
-
-# Run a short software check.
-Rscript scripts/run_main.R smoke
-
-# Run the main-paper applications at publication effort.
-Rscript scripts/run_main.R publication
+```r
+res <- readRDS("simulation_results.rds")
 ```
 
-The publication folder's README covers the supplementary, broader-distribution,
-and strict assessment analyses. `docs/result_index.csv` maps manuscript tables
-and figures to the corresponding scripts. These scripts specify the manuscript
-settings explicitly; the general package defaults serve exploratory use.
+## Citation
 
-## Common Troubleshooting
+If you use `pretestsim` in your work, please cite the package:
 
-### The old dashboard still appears
+> Kongyir, B., & Rudra, P. (2026). *pretestsim: Simulation Framework for Adaptive Normality
+> Pretesting*. R package version 1.0.0.
+> https://github.com/bkkongyir1106/Academia
 
-Restart R, reinstall the publication source archive, and check:
+To obtain the citation and BibTeX entry for the installed version, run:
+
+```r
+citation("pretestsim")
+toBibtex(citation("pretestsim"))
+```
+
+## Authors
+
+- **Benedict Kongyir** — author and maintainer.
+- **Pratyaydipta Rudra** — author.
+
+Maintainer contact: [kongyirbenkk@gmail.com](mailto:kongyirbenkk@gmail.com)
+
+## Support
+
+Report bugs and feature requests through the
+[GitHub issue tracker](https://github.com/bkkongyir1106/Academia/issues).
+Include a minimal reproducible example, the error message, and the output of
+`sessionInfo()`.
+
+### An earlier version is still loaded
+
+Restart R and reinstall the intended source archive. Check the active package
+and library paths:
 
 ```r
 packageVersion("pretestsim")
@@ -497,40 +464,43 @@ find.package("pretestsim")
 .libPaths()
 ```
 
-If several R libraries contain `pretestsim`, verify that R is loading the
-intended installation. Version `1.0.0` uses the bundled framework and does not
-show the old remote-asset or model-loading controls.
+When several libraries contain the package, ensure that R is loading the intended
+installation. Version 1.0.0 includes the framework source within the package.
 
-### An unused-argument error mentions refresh or a GitHub URL
+### The framework source cannot be found
 
-Those arguments belonged to the previous remote-loading version. Use:
+Check the installed version and reinstall the complete source archive after
+restarting R. Install the package as a whole, including `inst/framework`, rather
+than copying or sourcing its individual application files.
+
+### An argument from an earlier version is rejected
+
+Use the current loading and application functions without remote-asset options:
 
 ```r
 fw <- pretestsim::load_framework()
 pretestsim::run_app()
 ```
 
-### A phase tab is empty
+### A result tab is empty
 
-Check that the phase was selected, then click **Run simulation**. Inspect
-**Log & Downloads** for errors. If Phase 2 is omitted while running Phases 3–5,
-supply a routing threshold.
+Confirm that the corresponding phase was selected and inspect **Log & Downloads**
+for errors. When Phase 2 is omitted, Phases 3–5 require a supplied threshold.
 
-### Results vary between runs
+### Results differ between runs
 
-Use the same `set.seed()`, settings, R version and dependency versions. Small
-Monte Carlo runs can produce unstable thresholds and performance estimates.
-Increasing repetitions improves precision but does not increase the sample
-size of each dataset.
+Use the same seed and settings in the same software environment. With few
+repetitions, Monte Carlo variability can affect both threshold selection and
+estimated power or Type I error. Increase the repetitions when greater precision
+is required.
 
-### Results cannot be found after closing the dashboard
+### A simulation takes too long
 
-Dashboard files are temporary. Download them before closing the R session, or
-use `fw$run_simulation()` with an explicit `output_dir` for persistent outputs.
-Inspect `res$files` for the exact generated paths.
+Begin with a smaller number of repetitions and fewer sample sizes, and select
+only the required phases. For longer analyses, use an R script with a persistent
+output directory.
 
-### A run is slow
+## License
 
-First confirm the workflow with 100 repetitions and fewer sample sizes. Run only
-the phases needed. Use the publication scripts for long batch runs, and keep the
-final settings consistent with the manuscript.
+`pretestsim` is distributed under the MIT license. See [LICENSE](LICENSE) for
+copyright information.
