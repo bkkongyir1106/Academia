@@ -1,0 +1,28 @@
+Package: pretestsim
+Type: Package
+Title: Simulation Framework for Adaptive Normality Pretesting
+Version: 1.1.0
+Authors@R: c(
+    person("Benedict", "Kongyir", role = c("aut", "cre"),
+           email = "kongyirbenkk@gmail.com"),
+    person("Pratyaydipta", "Rudra", role = "aut"))
+Description: A self-contained simulation framework and Shiny dashboard for
+    evaluating the downstream utility of normality pretesting. Compares fixed
+    parametric, alternative, and adaptive procedures, selects routing thresholds,
+    and summarizes power and Type I error. Supports classical normality tests
+    and a custom Fisher combination of Shapiro-Wilk and Anderson-Darling scores.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports: shiny, bslib, DT, utils, grDevices, graphics, stats
+Suggests: MASS, nortest, moments, tseries, DescTools, coin, Rfit,
+        LaplacesDemon, VGAM, evd, robustbase, testthat (>= 3.0.0)
+Config/testthat/edition: 3
+NeedsCompilation: no
+URL: https://github.com/bkkongyir1106/Academia/tree/main/pretestsim
+BugReports: https://github.com/bkkongyir1106/Academia/issues
+Config/roxygen2/version: 8.1.0
+Packaged: 2026-11-17 03:06:18 UTC; benedictkongyir
+Author: Benedict Kongyir [aut, cre],
+  Pratyaydipta Rudra [aut]
+Maintainer: Benedict Kongyir <kongyirbenkk@gmail.com>
