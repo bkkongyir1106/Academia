@@ -16,6 +16,12 @@ An environment containing the framework functions.
 No network access or package installation occurs when loading the framework.
 Optional dependencies are checked by the selected procedures when needed.
 }
+\details{
+The bundled runner stores normality scores and downstream p-values in a single
+RDS file per analysis. Set \code{reuse_pvalues = TRUE} with the original simulation
+settings and seed to rebuild reports from those values. See
+\code{\link{simulation_tables}} for the table layout and a complete reuse example.
+}
 \examples{
 fw <- load_framework()
 names(formals(fw$run_simulation))

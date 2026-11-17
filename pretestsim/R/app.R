@@ -83,12 +83,14 @@ FAMILIES <- list(
   )
 )
 
+# Parse a comma-separated numeric setting, or use its supplied default.
 parse_nums <- function(txt, default = numeric(0)) {
   if (is.null(txt) || !nzchar(trimws(txt))) return(default)
   values <- suppressWarnings(as.numeric(strsplit(txt, "[,;[:space:]]+")[[1]]))
   values[is.finite(values)]
 }
 
+# Parse a scalar threshold or named sample-size/threshold pairs.
 parse_threshold <- function(txt) {
   txt <- trimws(txt %||% "")
   if (!nzchar(txt)) return(NULL)
@@ -101,6 +103,7 @@ parse_threshold <- function(txt) {
   suppressWarnings(as.numeric(txt))
 }
 
+# Define the dashboard colors, fonts, and layout rules.
 build_theme <- function() {
   bslib::bs_add_rules(
     bslib::bs_theme(
@@ -281,6 +284,7 @@ build_theme <- function() {
   )
 }
 
+# Build the controls and result panels without starting a simulation.
 app_ui <- function() {
   bslib::page_navbar(
     title = "Pretest Simulation Studio",
@@ -343,7 +347,7 @@ app_ui <- function() {
           conditionalPanel(
             "input.approach == 'classical'",
             selectInput("norm_test", "Adaptive-routing pretest", TEST_CODES, selected = "SW"),
-            checkboxGroupInput("battery", "Phase 1 ROC battery", TEST_CODES,
+            checkboxGroupInput("battery", "Normality tests for Phase 1 ROC", TEST_CODES,
                                selected = c("SW", "SF", "LF", "JB", "SKEW", "DAP", "AD", "CVM"),
                                inline = TRUE)
           ),
@@ -398,6 +402,9 @@ app_ui <- function() {
             selected = c(1, 2, 4)
           ),
           uiOutput("threshold_ui"),
+          numericInput("seed", "Simulation seed", 12345, min = 1, step = 1),
+          checkboxInput("reuse_pvalues", "Reuse the previous run's p-values", FALSE),
+          helpText("Reuse requires the same seed, simulation settings, and phase order."),
           actionButton("run", "Run simulation", class = "btn-primary w-100"),
           div(
             class = "run-progress-panel",
@@ -451,11 +458,13 @@ app_ui <- function() {
   )
 }
 
+# Load the framework and run analyses only in response to the Run button.
 app_server <- function(input, output, session) {
   fw_rv <- reactiveVal(NULL)
   status <- reactiveVal("Framework not loaded yet.")
   run_state <- reactiveValues(results = NULL, log = "", args = NULL, wd = NULL)
 
+  # Load the bundled framework into this session.
   load_fw <- function() {
     status("Loading bundled framework...")
     fw <- tryCatch(
@@ -497,6 +506,7 @@ app_server <- function(input, output, session) {
     )
   })
 
+  # Resolve the selected generator and downstream test functions.
   family_functions <- function(fw, family_id) {
     spec <- FAMILIES[[family_id]]
     alt_id <- input$downstream_alt %||% names(spec$alternatives)[1]
@@ -511,6 +521,7 @@ app_server <- function(input, output, session) {
     c(out, spec$extra)
   }
 
+  # Construct the selected classical or Fisher normality configuration.
   norm_config <- function(fw) {
     if (identical(input$approach, "classical")) {
       return(list(method = "classical", config = list(norm_test = input$norm_test)))
@@ -521,6 +532,7 @@ app_server <- function(input, output, session) {
     list(method = "custom", config = list(fn = fw$fisher_combined, label = "Fisher SW + AD"))
   }
 
+  # Translate the selected controls into framework arguments.
   build_args <- function(fw) {
     spec <- FAMILIES[[input$family]]
     alt_id <- input$downstream_alt %||% names(spec$alternatives)[1]
@@ -531,29 +543,29 @@ app_server <- function(input, output, session) {
     args <- c(
       family_functions(fw, input$family),
       list(
-        Nsim = input$Nsim,
-        N_tradeoff = input$N_tradeoff,
-        test_type = paste(spec$test_type, "vs", alt$suffix, custom_label, sep = "_"),
-        distributions = c(input$dist, "normal"),
-        norm_config = selected_norm_config,
-        threshold_grid = seq(0, 1, by = input$grid_by),
+        Nsim               = input$Nsim,
+        N_tradeoff         = input$N_tradeoff,
+        test_type          = paste(spec$test_type, "vs", alt$suffix, custom_label, sep = "_"),
+        distributions      = c(input$dist, "normal"),
+        norm_config        = selected_norm_config,
+        threshold_grid     = seq(0, 1, by = input$grid_by),
         normality_roc_grid = seq(0, 1, by = max(input$grid_by, 0.025)),
-        tol_pos = input$tol_pos,
-        loss_tol = input$loss_tol,
-        test_alpha = input$test_alpha,
-        center_by = input$center_by,
-        effect_size = parse_nums(input$effect_size, spec$effect_size),
-        sample_sizes = parse_nums(input$sample_sizes, c(10, 20, 30, 40, 50)),
-        single_n = input$single_n,
-        effect_sizes_plot = parse_nums(input$effect_sizes_plot, c(0, 0.2, 0.5, 0.8)),
-        sig_levels = seq(0, 1, by = input$sig_by),
-        norm_test = TEST_CODES,
-        selected_tests = if (identical(input$approach, "classical")) input$battery else input$custom_method,
-        phases = phases,
-        pretest_threshold = if (needs_threshold()) parse_threshold(input$pretest_threshold) else NULL,
-        per_n_thresholds = isTRUE(input$per_n),
-        save_results = TRUE,
-        save_compression = "gzip"
+        tol_pos            = input$tol_pos,
+        loss_tol           = input$loss_tol,
+        test_alpha         = input$test_alpha,
+        center_by          = input$center_by,
+        effect_size        = parse_nums(input$effect_size, spec$effect_size),
+        sample_sizes       = parse_nums(input$sample_sizes, c(10, 20, 30, 40, 50)),
+        single_n           = input$single_n,
+        effect_sizes_plot  = parse_nums(input$effect_sizes_plot, c(0, 0.2, 0.5, 0.8)),
+        sig_levels         = seq(0, 1, by = input$sig_by),
+        norm_test          = TEST_CODES,
+        selected_tests     = if (identical(input$approach, "classical")) input$battery else input$custom_method,
+        phases             = phases,
+        pretest_threshold  = if (needs_threshold()) parse_threshold(input$pretest_threshold) else NULL,
+        per_n_thresholds   = isTRUE(input$per_n),
+        save_results       = FALSE,
+        save_compression   = "gzip"
       )
     )
     args
@@ -579,10 +591,30 @@ app_server <- function(input, output, session) {
     if (is.null(args)) return()
     run_state$args <- args
 
-    wd <- tempfile("pretestsim_")
-    dir.create(wd, recursive = TRUE)
+    # Validate reproducibility controls before creating output files.
+    seed <- input$seed %||% 12345
+    if (length(seed) != 1L || !is.finite(seed) || seed < 1 ||
+        seed > .Machine$integer.max || seed != floor(seed)) {
+      showNotification("The simulation seed must be a positive integer.", type = "error")
+      return()
+    }
+    reuse <- isTRUE(input$reuse_pvalues)
+    if (reuse && is.null(run_state$wd)) {
+      showNotification("Run a simulation before requesting reuse.", type = "error")
+      return()
+    }
+
+    # A new run receives its own directory; reuse reads the previous run's tables.
+    wd <- if (reuse) run_state$wd else tempfile("pretestsim_")
+    dir.create(wd, recursive = TRUE, showWarnings = FALSE)
     args$output_dir <- file.path(wd, "results")
+    args$pvalue_directory <- file.path(args$output_dir, args$test_type, "pvalue_tables")
+    args$reuse_pvalues <- reuse
     run_state$args <- args
+
+    RNGversion("4.2.0")
+    set.seed(as.integer(seed), kind = "Mersenne-Twister",
+      normal.kind = "Inversion", sample.kind = "Rejection")
 
     log <- shiny::withProgress(
       message = "Running pretest simulation",
@@ -616,12 +648,16 @@ app_server <- function(input, output, session) {
     }
   }, ignoreInit = TRUE)
 
+  # Check whether the completed analysis includes a requested phase.
   ran <- function(phase) {
     res <- run_state$results
     !is.null(res) && phase %in% res$params$phases_run
   }
+  # Access the completed analysis objects.
   obj <- function() run_state$results$objects
+  # Access the completed analysis settings.
   par <- function() run_state$results$params
+  # Apply plot colors temporarily, then restore the graphics settings.
   dark <- function(expr) {
     op <- graphics::par(
       bg = "#0f1419",

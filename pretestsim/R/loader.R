@@ -2,6 +2,11 @@
 #'
 #' No network access or package installation occurs when loading the framework.
 #' Optional dependencies are checked by the selected procedures when needed.
+#' @details
+#' The bundled runner stores normality scores and downstream p-values in a single
+#' RDS file per analysis. Set \code{reuse_pvalues = TRUE} with the original simulation
+#' settings and seed to rebuild reports from those values. See
+#' \code{\link{simulation_tables}} for the table layout and a complete reuse example.
 #' @param path Optional path to a compatible local framework source file.
 #' @return An environment containing the framework functions.
 #' @export
@@ -25,11 +30,15 @@ load_framework <- function(path = NULL) {
     }
   }
   sys.source(path, envir = env)
-  required <- c("run_simulation", "generate_pval", "fisher_combined")
+  required <- c(
+    "run_simulation", "generate_pval", "fisher_combined",
+    "route_saved_pvalues", "pvalue_table_index", "new_pvalue_store"
+  )
   stopifnot(all(vapply(required, exists, logical(1), envir = env,
                        mode = "function", inherits = FALSE)))
   attr(env, "framework_file") <- normalizePath(path, winslash = "/")
   env
 }
 
+# Return a default value only when an optional setting is NULL.
 `%||%` <- function(a, b) if (is.null(a)) b else a

@@ -46,11 +46,11 @@ required only for the procedures that use them.
 
 ### From a source archive
 
-Download or locate `pretestsim_1.0.0.tar.gz`, then install it from R:
+Download or locate `pretestsim_1.1.0.tar.gz`, then install it from R:
 
 ```r
 install.packages(
-  "path/to/pretestsim_1.0.0.tar.gz",
+  "path/to/pretestsim_1.1.0.tar.gz",
   repos = NULL,
   type = "source"
 )
@@ -68,7 +68,7 @@ Check the installation:
 ```r
 library(pretestsim)
 packageVersion("pretestsim")
-# [1] '1.0.0'
+# [1] '1.1.0'
 ```
 
 The framework is included in the package. An internet connection is not needed
@@ -90,7 +90,7 @@ remotes::install_github(
 ```
 
 This command installs the version available at that repository path. Version
-1.0.0 must be uploaded there before it can be installed through GitHub; use the
+1.1.0 must be uploaded there before it can be installed through GitHub; use the
 source archive to install the accompanying release. If the package is published
 at a different location within the repository, adjust `subdir` accordingly.
 
@@ -106,7 +106,7 @@ packageVersion("pretestsim")
 find.package("pretestsim")
 ```
 
-Version 1.0.0 loads its bundled framework. The `refresh`, `raw_base`, and
+Version 1.1.0 loads its bundled framework. The `refresh`, `raw_base`, and
 `refresh_assets` arguments from earlier versions are no longer used.
 
 ## Interactive application
@@ -126,7 +126,7 @@ To configure an analysis:
 2. Select the downstream comparison, alternative procedure, generating
    distribution, centering convention, and effect size.
 3. Specify the simulation parameters and analytical phases.
-4. Click **Run simulation**.
+4. Set the simulation seed and click **Run simulation**.
 5. View the results in the phase tabs and download files from **Log & Downloads**.
 
 The framework loads automatically when the application opens. Simulations begin
@@ -166,6 +166,12 @@ the custom normality option.
 Phases 3–5 require a routing threshold. Include Phase 2 to select a threshold,
 or supply one directly when Phase 2 is omitted. The application displays the
 threshold input when needed.
+
+To rebuild the previous run, select **Reuse the previous run's p-values** and
+click **Run simulation**. Keep the seed, data-generating settings, simulation
+counts, and selected phases unchanged. A changed or missing simulation batch
+produces an error; it does not silently generate replacement data. Reuse applies
+to the previous run in the current dashboard session.
 
 Application outputs are stored in a temporary session directory. Download the
 required files before closing the R session. Scripted analyses can instead write
@@ -237,7 +243,7 @@ res <- fw$run_simulation(
   phases         = c(1, 2, 4),
 
   output_dir   = "onesample_ttest_vs_sign_results",
-  save_results = TRUE
+  save_results = FALSE
 )
 ```
 
@@ -259,7 +265,9 @@ onesample_ttest_vs_sign_results/
 
 Relative output paths are resolved against `getwd()`. Use an absolute path in
 `output_dir` if you want a particular location. Reusing the same output folder
-and `test_type` replaces files from the previous run.
+and `test_type` for a new simulation stops if saved p-values already exist.
+Use `reuse_pvalues = TRUE` to rebuild from those values, or choose a new
+`test_type` for a new simulation.
 
 Here, median centering defines the one-sample null. Under an asymmetric
 population, the t-test's mean target can differ from that median target;
@@ -297,7 +305,7 @@ res_two <- fw$run_simulation(
   single_n = 10,
   phases = c(1, 2, 4),
   output_dir = "twosample_results",
-  save_results = TRUE
+  save_results = FALSE
 )
 ```
 
@@ -336,7 +344,7 @@ res_randomized <- fw$run_simulation(
   sample_sizes = c(10, 20, 30, 40, 50),
   phases = c(2, 4),
   output_dir = "randomized_sign_results",
-  save_results = TRUE
+  save_results = FALSE
 )
 ```
 
@@ -379,7 +387,7 @@ res_fisher <- fw$run_simulation(
   single_n = 10,
   phases = c(1, 2, 4),
   output_dir = "fisher_results",
-  save_results = TRUE
+  save_results = FALSE
 )
 ```
 
@@ -409,27 +417,93 @@ example, `seq(0, 1, by = 0.005)` evaluates thresholds in increments of 0.005.
 Permutation procedures require additional resampling within each repetition and
 can take substantially longer than analytical tests.
 
-For reproducible studies, retain the seed, simulation settings, result objects,
-and software versions:
+## Stored simulation tables
 
-```r
-sessionInfo()
-saveRDS(res, file = "simulation_results.rds")
+Each simulation batch stores four columns:
+
+| Column | Contents |
+|---|---|
+| `Normality_Score` | Normality-test p-values or the custom score; a list column retains separate group scores |
+| `Test1_P_Value` | Parametric procedure p-value |
+| `Test2_P_Value` | Alternative procedure p-value |
+| `Adaptive_P_Value` | Test 1 or Test 2 p-value selected by the normality score and routing threshold |
+
+The framework calculates the normality scores and the two downstream p-values
+once per simulated dataset. It routes these stored values to form adaptive
+p-values and uses them for threshold-grid calculations and operating summaries.
+The existing phase-specific simulation batches are retained: different phases,
+sample sizes, and effect sizes can require different simulated datasets.
+
+`run_simulation()` saves one file automatically:
+
+```text
+<output_dir>/<test_type>/pvalue_tables/pvalue_tables.rds
 ```
 
-The full set of generated paths is available in `res$files`. A saved result can
-be read with:
+Inspect the saved batches and a sample-size evaluation table:
 
 ```r
-res <- readRDS("simulation_results.rds")
+saved <- readRDS(res$files$pvalue_tables)
+fw$pvalue_table_index(saved)
+head(saved$phase4_sample_sizes$batch_0001$H0)
+head(saved$phase4_sample_sizes$batch_0001$H1)
 ```
+
+`H0` and `H1` contain the null and alternative batches. Phase 1 assesses normality
+alone: it stores the normality scores, with downstream p-value columns marked
+`NA` because no downstream tests are evaluated in that phase. In Phase 2, the
+adaptive column is filled after threshold selection. For two-sample tests, each
+row's `Normality_Score` retains both group scores.
+
+### Rebuild results without generating new p-values
+
+Keep the original call settings in a list. For example, in a new output folder:
+
+```r
+fw <- pretestsim::load_framework()
+run_args <- list(
+  Nsim              = 100,
+  N_tradeoff        = 100,
+  test_type         = "reuse_example",
+  sample_sizes      = c(10, 20),
+  single_n          = 10,
+  phases            = c(2, 4),
+  threshold_grid    = seq(0, 1, by = 0.05),
+  output_dir        = "simulation_results"
+)
+
+set.seed(12345)
+res <- do.call(fw$run_simulation, run_args)
+
+# Restore the same seed and reuse the saved batches.
+set.seed(12345)
+run_args$reuse_pvalues <- TRUE
+res <- do.call(fw$run_simulation, run_args)
+```
+
+Use the same R random-number settings, seed, phase order, data-generating
+functions, and simulation counts when reusing a run. To use an RDS file downloaded
+from the dashboard, place it in a directory as `pvalue_tables.rds`, supply that
+directory as `pvalue_directory`, and reproduce the original dashboard arguments
+and seed. The dashboard uses `RNGversion("4.2.0")` with Mersenne-Twister, Inversion,
+and Rejection settings. Record its resolved arguments and the seed.
+The resolved arguments are displayed in the Run Summary tab; they can be copied
+from there.
+
+The default `save_results = FALSE` avoids an additional workspace containing
+copies of the same values. The returned `res` still contains analysis summaries
+and plot data. Set `save_results = TRUE` only when an additional `.RData` workspace
+is needed. File paths are listed in `res$files`; record `sessionInfo()` alongside
+the seed and simulation settings for reproducible studies.
+
+See `help("simulation_tables", package = "pretestsim")` for the table workflow.
 
 ## Citation
 
 If you use `pretestsim` in your work, please cite the package:
 
 > Kongyir, B., & Rudra, P. (2026). *pretestsim: Simulation Framework for Adaptive Normality
-> Pretesting*. R package version 1.0.0.
+> Pretesting*. R package version 1.1.0.
 > https://github.com/bkkongyir1106/Academia
 
 To obtain the citation and BibTeX entry for the installed version, run:
@@ -465,7 +539,7 @@ find.package("pretestsim")
 ```
 
 When several libraries contain the package, ensure that R is loading the intended
-installation. Version 1.0.0 includes the framework source within the package.
+installation. Version 1.1.0 includes the framework source within the package.
 
 ### The framework source cannot be found
 
