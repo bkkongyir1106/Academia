@@ -83,7 +83,7 @@ install.packages("remotes")
 
 remotes::install_github(
   "bkkongyir1106/Academia",
-  subdir = "pretestsim",
+  subdir = "pretestsim 2",
   force = TRUE,
   upgrade = "never"
 )
